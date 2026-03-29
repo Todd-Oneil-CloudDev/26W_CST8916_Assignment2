@@ -41,6 +41,7 @@ CORS(app)
 # ---------------------------------------------------------------------------
 CONNECTION_STR = os.environ.get("EVENT_HUB_CONNECTION_STR", "")
 EVENT_HUB_NAME = os.environ.get("EVENT_HUB_NAME", "clickstream")
+EVENT_HUB_READ = os.environ.get("EVENT_HUB_NAME", "analytics-output")
 
 # In-memory buffer: stores the last 50 events received by the consumer thread.
 # In a production system you would query a database or Azure Stream Analytics output.
@@ -110,7 +111,7 @@ def start_consumer():
     consumer = EventHubConsumerClient.from_connection_string(
         conn_str=CONNECTION_STR,
         consumer_group="$Default",
-        eventhub_name=EVENT_HUB_NAME,
+        eventhub_name=EVENT_HUB_READ,
     )
 
     def run():
