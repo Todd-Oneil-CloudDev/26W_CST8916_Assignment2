@@ -41,7 +41,10 @@ CORS(app)
 # ---------------------------------------------------------------------------
 CONNECTION_STR = os.environ.get("EVENT_HUB_CONNECTION_STR", "")
 EVENT_HUB_NAME = os.environ.get("EVENT_HUB_NAME", "clickstream")
-EVENT_HUB_READ = os.environ.get("EVENT_HUB_NAME", "analytics-output")
+EVENT_HUB_READ = os.environ.get("EVENT_HUB_READ", "analytics-output")
+EVENT_HUB_DEVICE_READ = os.environ.get("EVENT_HUB_DEVICE_READ", "analytics-output")
+EVENT_HUB_SPIKE_READ = os.environ.get("EVENT_HUB_NAME_SPIKE_READ", "analytics-output")
+
 
 # In-memory buffer: stores the last 50 events received by the consumer thread.
 # In a production system you would query a database or Azure Stream Analytics output.
@@ -71,7 +74,6 @@ def send_to_event_hubs(event_dict: dict):
         event_batch = producer.create_batch()
         event_batch.add(EventData(json.dumps(event_dict)))
         producer.send_batch(event_batch)
-
 
 # ---------------------------------------------------------------------------
 # Background consumer thread – reads events from Event Hubs and buffers them
@@ -187,7 +189,7 @@ def track():
         "product_id": request.json.get("product_id"),
         "user_id":    request.json.get("user_id", "anonymous"),
         "session_id": request.json.get("session_id", "unknown"),
-        "timestamp":  datetime.now(timezone.utc).isoformat(),
+        "server_timestamp":  datetime.now(timezone.utc).isoformat(),
     }
 
     send_to_event_hubs(event)
