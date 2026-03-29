@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request, send_from_directory, abort
 from flask_cors import CORS
+from ua_parser import parse
 
 # ---------------------------------------------------------------------------
 # Azure Event Hubs SDK
@@ -100,7 +101,7 @@ def start_consumer():
     and make the web server unable to handle any HTTP requests.
     """
     if not CONNECTION_STR:
-        app.logger.warning("EVENT_HUB_CONNECTION_STR is not set – consumer thread not started")
+        app.logger.warning("EVENT_HUB_CONNECTION_STR is not set - consumer thread not started")
         return
 
     # $Default is the built-in consumer group every Event Hub has.
@@ -148,7 +149,7 @@ def dashboard():
 
 @app.route("/health", methods=["GET"])
 def health():
-    """Health check – used by Azure App Service to verify the app is running."""
+    """Health check - used by Azure App Service to verify the app is running."""
     return jsonify({"status": "healthy"}), 200
 
 
@@ -168,12 +169,23 @@ def track():
     if not request.json:
         abort(400)
 
+    # get User-Agent data
+    ua = request.headers.get("User-Agent")
+    parsed = parse(ua)
+    print(parsed)
+
     # Enrich the event with a server-side timestamp
     event = {
+        "ip_address": request.remote_addr,
+        "device":     parsed.device.family if parsed.device != None else "unknown",
+        "os":         parsed.os.family,
+        "browser":    parsed.user_agent.family,
         "event_type": request.json.get("event_type", "unknown"),
         "page":       request.json.get("page", "/"),
+        "referrer":   request.headers.get("referrer"),
         "product_id": request.json.get("product_id"),
         "user_id":    request.json.get("user_id", "anonymous"),
+        "session_id": request.json.get("session_id", "unknown"),
         "timestamp":  datetime.now(timezone.utc).isoformat(),
     }
 
