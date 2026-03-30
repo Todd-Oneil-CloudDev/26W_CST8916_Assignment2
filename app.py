@@ -139,6 +139,7 @@ def start_consumer(event_hub_name, callback):
     thread = threading.Thread(target=run, daemon=True)
     thread.start()
     app.logger.info("Event Hubs consumer thread started")
+    print(f"Event Hubs consumer thread started with name: {event_hub_name}")
 
 
 # ---------------------------------------------------------------------------
