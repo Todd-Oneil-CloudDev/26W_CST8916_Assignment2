@@ -242,8 +242,16 @@ def get_events():
     for e in recent:
         et = e.get("event_type", "unknown")
         summary[et] = summary.get(et, 0) + 1
+    device_summary = {}
+    for e in devices:
+        et = e.get("device", "unknown")
+        device_summary[et] = device_summary.get(et, 0) + 1
+    spike_summary = {}
+    for e in spikes:
+        et = e.get("event_type", "unknown")
+        spike_summary[et] = spike_summary.get(et, 0) + 1
 
-    return jsonify({"events": recent, "summary": summary, "total": len(recent)}), 200
+    return jsonify({"events": recent, "summary": summary, "total": len(recent), "devices": device_summary, "epm": spike_summary}), 200
 
 
 # ---------------------------------------------------------------------------
