@@ -49,7 +49,11 @@ EVENT_HUB_SPIKE_READ = os.environ.get("EVENT_HUB_NAME_SPIKE_READ", "analytics-ou
 # In-memory buffer: stores the last 50 events received by the consumer thread.
 # In a production system you would query a database or Azure Stream Analytics output.
 _event_buffer = []
+_event_agg_buffer = []
+_event_spike_buffer = []
 _buffer_lock = threading.Lock()
+_buffer_agg_lock = threading.Lock()
+_buffer_spike_lock = threading.Lock()
 MAX_BUFFER = 50
 
 
@@ -78,25 +82,27 @@ def send_to_event_hubs(event_dict: dict):
 # ---------------------------------------------------------------------------
 # Background consumer thread – reads events from Event Hubs and buffers them
 # ---------------------------------------------------------------------------
-def _on_event(partition_context, event):
-    """Callback invoked by the consumer client for each incoming event."""
-    body = event.body_as_str(encoding="UTF-8")
-    try:
-        data = json.loads(body)
-    except json.JSONDecodeError:
-        data = {"raw": body}
+def make_on_event(buffer, lock):
+    def _on_event(partition_context, event):
+        """Callback invoked by the consumer client for each incoming event."""
+        body = event.body_as_str(encoding="UTF-8")
+        try:
+            data = json.loads(body)
+        except json.JSONDecodeError:
+            data = {"raw": body}
 
-    with _buffer_lock:
-        _event_buffer.append(data)
-        # Keep the buffer at MAX_BUFFER entries (drop the oldest)
-        if len(_event_buffer) > MAX_BUFFER:
-            _event_buffer.pop(0)
+        with lock:
+            buffer.append(data)
+            # Keep the buffer at MAX_BUFFER entries (drop the oldest)
+            if len(buffer) > MAX_BUFFER:
+                buffer.pop(0)
 
-    # Acknowledge the event so Event Hubs advances the consumer offset
-    partition_context.update_checkpoint(event)
+        # Acknowledge the event so Event Hubs advances the consumer offset
+        partition_context.update_checkpoint(event)
+    return _on_event
 
 
-def start_consumer():
+def start_consumer(event_hub_name, callback):
     """Start the Event Hubs consumer in a background daemon thread.
 
     The consumer must run on a separate thread because consumer.receive() blocks
@@ -113,7 +119,7 @@ def start_consumer():
     consumer = EventHubConsumerClient.from_connection_string(
         conn_str=CONNECTION_STR,
         consumer_group="$Default",
-        eventhub_name=EVENT_HUB_READ,
+        eventhub_name=event_hub_name,
     )
 
     def run():
@@ -122,7 +128,7 @@ def start_consumer():
             # starting_position="-1" means "start from the beginning of the stream",
             # not just events that arrive after this consumer connects.
             consumer.receive(
-                on_event=_on_event,
+                on_event= callback,
                 starting_position="-1",
             )
 
@@ -190,6 +196,7 @@ def track():
         "user_id":    request.json.get("user_id", "anonymous"),
         "session_id": request.json.get("session_id", "unknown"),
         "timestamp":  datetime.now(timezone.utc).isoformat(),
+        "server_timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     send_to_event_hubs(event)
@@ -223,6 +230,12 @@ def get_events():
 
     with _buffer_lock:
         recent = list(_event_buffer[-limit:])
+    
+    with _buffer_agg_lock:
+        devices = list(_event_agg_buffer[-limit:])
+
+    with _buffer_spike_lock:
+        spikes = list(_event_spike_buffer[-limit:])
 
     # Build a simple summary for the dashboard
     summary = {}
@@ -238,6 +251,8 @@ def get_events():
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     # Start the background consumer so the dashboard receives live events
-    start_consumer()
+    start_consumer(EVENT_HUB_READ, make_on_event(_event_buffer, _buffer_lock))
+    start_consumer(EVENT_HUB_DEVICE_READ, make_on_event(_event_agg_buffer, _buffer_agg_lock))
+    start_consumer(EVENT_HUB_SPIKE_READ, make_on_event(_event_spike_buffer, _buffer_spike_lock))
     # Run on 0.0.0.0 so it is reachable both locally and inside Azure App Service
     app.run(debug=False, host="0.0.0.0", port=8000)
