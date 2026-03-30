@@ -359,7 +359,7 @@
       document.getElementById("kpi-cart").textContent = data.summary?.add_to_cart ?? 0;
       document.getElementById("kpi-purchase").textContent = data.summary?.purchase ?? 0;
       document.getElementById("kpi-count").textContent = data.devices?.event_count ?? 0;
-      document.getElementById("kpi-count").textContent = data.epm?.events ?? 0;
+      document.getElementById("kpi-epm").textContent = data.epm?.events ?? 0;
     }
 
     // ── Bar chart ─────────────────────────────────────────────────

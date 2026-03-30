@@ -42,8 +42,8 @@ CORS(app)
 CONNECTION_STR = os.environ.get("EVENT_HUB_CONNECTION_STR", "")
 EVENT_HUB_NAME = os.environ.get("EVENT_HUB_NAME", "clickstream")
 EVENT_HUB_READ = os.environ.get("EVENT_HUB_READ", "analytics-output")
-EVENT_HUB_DEVICE_READ = os.environ.get("EVENT_HUB_DEVICE_READ", "analytics-output")
-EVENT_HUB_SPIKE_READ = os.environ.get("EVENT_HUB_NAME_SPIKE_READ", "analytics-output")
+EVENT_HUB_DEVICE_READ = os.environ.get("EVENT_HUB_DEVICE_READ", "device-agg")
+EVENT_HUB_SPIKE_READ = os.environ.get("EVENT_HUB_NAME_SPIKE_READ", "spike-detection")
 
 
 # In-memory buffer: stores the last 50 events received by the consumer thread.
@@ -86,6 +86,7 @@ def make_on_event(buffer, lock):
     def _on_event(partition_context, event):
         """Callback invoked by the consumer client for each incoming event."""
         body = event.body_as_str(encoding="UTF-8")
+        print(f"event received: {event}")
         try:
             data = json.loads(body)
         except json.JSONDecodeError:
