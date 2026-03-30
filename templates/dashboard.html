@@ -300,7 +300,7 @@
       <div class="value red" id="kpi-pc_count">–</div>
     </div>
     <div class="kpi">
-      <div class="label">Events Per Minute</div>
+      <div class="label">Max Events In Last 5 Min</div>
       <div class="value red" id="kpi-epm">–</div>
     </div>
   </div>
@@ -361,13 +361,14 @@
       const ds = data.device_summary ?? {}
       const mobile = (ds.iPhone ?? 0) + (ds.Android ?? 0)
       const desktop = ds.unknown ?? 0
+      const max_spike = Math.max(...Object.values(data.spike_summary ?? {}))
       document.getElementById("kpi-total").textContent = data.total ?? 0;
       document.getElementById("kpi-views").textContent = data.summary?.page_view ?? 0;
       document.getElementById("kpi-cart").textContent = data.summary?.add_to_cart ?? 0;
       document.getElementById("kpi-purchase").textContent = data.summary?.purchase ?? 0;
       document.getElementById("kpi-mobile_count").textContent = mobile;
       document.getElementById("kpi-pc_count").textContent = desktop;
-      document.getElementById("kpi-epm").textContent = data.epm?.events ?? 0;
+      document.getElementById("kpi-epm").textContent = max_spike ?? 0;
     }
 
     // ── Bar chart ─────────────────────────────────────────────────

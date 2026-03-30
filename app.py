@@ -55,6 +55,7 @@ _buffer_lock = threading.Lock()
 _buffer_agg_lock = threading.Lock()
 _buffer_spike_lock = threading.Lock()
 MAX_BUFFER = 50
+SPIKE_MAX_BUFFER = 5
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +148,7 @@ def start_consumer(event_hub_name, callback):
 start_consumer(EVENT_HUB_READ, make_on_event(_event_buffer, _buffer_lock))
 start_consumer(EVENT_HUB_DEVICE_READ, make_on_event(_event_agg_buffer, _buffer_agg_lock))
 start_consumer(EVENT_HUB_SPIKE_READ, make_on_event(_event_spike_buffer, _buffer_spike_lock))
+
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -241,7 +243,8 @@ def get_events():
         devices = list(_event_agg_buffer[-limit:])
 
     with _buffer_spike_lock:
-        spikes = list(_event_spike_buffer[-limit:])
+        # limit to the last 5 minutes (1 minute intervals each)
+        spikes = list(_event_spike_buffer[-5:])
 
     # Build a simple summary for the dashboard
     summary = {}
@@ -258,7 +261,7 @@ def get_events():
     spike_summary = {}
     for e in spikes:
         win = e.get("window_end", "unknown")
-        spike_summary[win] = spike_summary.get("events", 0)
+        spike_summary[win] = e.get("events", 0)
 
     return jsonify({"events": recent, 
                     "summary": summary, 
@@ -267,23 +270,6 @@ def get_events():
                     "spikes": spikes,
                     "device_summary": device_summary,
                     "spike_summary": spike_summary}), 200
-
-@app.route("/api/devices", methods=["GET"])
-def get_analytics():
-    """Return processed analytics from Stream Analytics."""
-    with _buffer_agg_lock:
-        return jsonify({
-            "device_breakdown": {
-                "data": dict(_device_breakdown.get("counts", {})),
-                "total_events": _device_breakdown.get("total", 0),
-                "last_update": _device_breakdown.get("last_update")
-            },
-            "spike_detection": {
-                "current": _spike_detection.get("current_spike"),
-                "recent_history": _spike_detection.get("history", [])[-20:],
-                "last_update": _spike_detection.get("last_update")
-            }
-        }), 200
 
 # ---------------------------------------------------------------------------
 # Entry point
