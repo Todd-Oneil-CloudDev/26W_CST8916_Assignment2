@@ -293,7 +293,11 @@
     </div>
     <div class="kpi">
       <div class="label">Mobile</div>
-      <div class="value red" id="kpi-count">–</div>
+      <div class="value red" id="kpi-mobile_count">–</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Desktop</div>
+      <div class="value red" id="kpi-pc_count">–</div>
     </div>
     <div class="kpi">
       <div class="label">Events Per Minute</div>
@@ -354,11 +358,15 @@
 
     // ── KPI cards ────────────────────────────────────────────────
     function renderKPIs(data) {
+      const ds = data.device_summary ?? {}
+      const mobile = (ds.iPhone ?? 0) + (ds.Android ?? 0)
+      const desktop = ds.unknown ?? 0
       document.getElementById("kpi-total").textContent = data.total ?? 0;
       document.getElementById("kpi-views").textContent = data.summary?.page_view ?? 0;
       document.getElementById("kpi-cart").textContent = data.summary?.add_to_cart ?? 0;
       document.getElementById("kpi-purchase").textContent = data.summary?.purchase ?? 0;
-      document.getElementById("kpi-count").textContent = data.devices?.event_count ?? 0;
+      document.getElementById("kpi-mobile_count").textContent = mobile;
+      document.getElementById("kpi-pc_count").textContent = desktop;
       document.getElementById("kpi-epm").textContent = data.epm?.events ?? 0;
     }
 
