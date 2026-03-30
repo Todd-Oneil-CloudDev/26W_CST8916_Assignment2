@@ -139,8 +139,14 @@ def start_consumer(event_hub_name, callback):
     thread = threading.Thread(target=run, daemon=True)
     thread.start()
     app.logger.info("Event Hubs consumer thread started")
-    print(f"Event Hubs consumer thread started with name: {event_hub_name}")
+    app.logger.info(f"Event Hubs consumer thread started with name: {event_hub_name}")
 
+
+# 
+# 
+start_consumer(EVENT_HUB_READ, make_on_event(_event_buffer, _buffer_lock))
+start_consumer(EVENT_HUB_DEVICE_READ, make_on_event(_event_agg_buffer, _buffer_agg_lock))
+start_consumer(EVENT_HUB_SPIKE_READ, make_on_event(_event_spike_buffer, _buffer_spike_lock))
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -262,14 +268,30 @@ def get_events():
                     "device_summary": device_summary,
                     "spike_summary": spike_summary}), 200
 
+@app.route("/api/devices", methods=["GET"])
+def get_analytics():
+    """Return processed analytics from Stream Analytics."""
+    with _buffer_agg_lock:
+        return jsonify({
+            "device_breakdown": {
+                "data": dict(_device_breakdown.get("counts", {})),
+                "total_events": _device_breakdown.get("total", 0),
+                "last_update": _device_breakdown.get("last_update")
+            },
+            "spike_detection": {
+                "current": _spike_detection.get("current_spike"),
+                "recent_history": _spike_detection.get("history", [])[-20:],
+                "last_update": _spike_detection.get("last_update")
+            }
+        }), 200
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     # Start the background consumer so the dashboard receives live events
-    start_consumer(EVENT_HUB_READ, make_on_event(_event_buffer, _buffer_lock))
-    start_consumer(EVENT_HUB_DEVICE_READ, make_on_event(_event_agg_buffer, _buffer_agg_lock))
-    start_consumer(EVENT_HUB_SPIKE_READ, make_on_event(_event_spike_buffer, _buffer_spike_lock))
+    # start_consumer(EVENT_HUB_READ, make_on_event(_event_buffer, _buffer_lock))
+    # start_consumer(EVENT_HUB_DEVICE_READ, make_on_event(_event_agg_buffer, _buffer_agg_lock))
+    # start_consumer(EVENT_HUB_SPIKE_READ, make_on_event(_event_spike_buffer, _buffer_spike_lock))
     # Run on 0.0.0.0 so it is reachable both locally and inside Azure App Service
     app.run(debug=False, host="0.0.0.0", port=8000)
