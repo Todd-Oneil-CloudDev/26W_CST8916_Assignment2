@@ -196,7 +196,7 @@ def track():
         "user_id":    request.json.get("user_id", "anonymous"),
         "session_id": request.json.get("session_id", "unknown"),
         "timestamp":  datetime.now(timezone.utc).isoformat(),
-        "server_timestamp": datetime.now(timezone.utc).isoformat(),
+        "server_timestamp": datetime.now(timezone.utc)
     }
 
     send_to_event_hubs(event)
