@@ -182,7 +182,6 @@ def track():
     # get User-Agent data
     ua = request.headers.get("User-Agent")
     parsed = parse(ua)
-    print(parsed)
 
     # Enrich the event with a server-side timestamp
     event = {
@@ -244,11 +243,11 @@ def get_events():
         summary[et] = summary.get(et, 0) + 1
     device_summary = {}
     for e in devices:
-        et = e.get("device", "unknown")
+        et = e.get("event_count", 0)
         device_summary[et] = device_summary.get(et, 0) + 1
     spike_summary = {}
     for e in spikes:
-        et = e.get("event_type", "unknown")
+        et = e.get("events", 0)
         spike_summary[et] = spike_summary.get(et, 0) + 1
 
     return jsonify({"events": recent, "summary": summary, "total": len(recent), "devices": device_summary, "epm": spike_summary}), 200
