@@ -316,7 +316,7 @@
         `<span class="evt">${payload.event_type}</span> ` +
         `${payload.page || ""}` +
         (payload.product_id ? ` (${payload.product_id})` : "") +
-        ` <span class="${success ? "ok" : "err"}">${success ? "→ sent to Event Hubs" : "× send failed"}</span>`;
+        ` <span class="${success ? "ok" : "err"}">${success ? "→ sent to Event Hubs" : "× send failed "}</span>`;
       // Remove placeholder text on first real event
       if (log.querySelector("span[style]")) log.innerHTML = "";
       log.appendChild(line);
